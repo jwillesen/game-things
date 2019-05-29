@@ -6,10 +6,9 @@ tray_walls = 2
 tray_roundness = 2
 
 tray_width = 100
-tray_height = 150
+tray_height = 100
 dimensions = 'outer'
 # dimensions = 'inner'
-
 if dimensions == 'inner':
   tray_inner_width = tray_width
   tray_inner_height = tray_height
@@ -26,8 +25,15 @@ magnet_radius = magnet_diameter / 2
 magnet_depth = 1
 magnet_width_offset = tray_outer_width / 2
 magnet_height_offset = tray_outer_height / 2
-# magnet_vertical_offset = tray_depth / 2
-magnet_vertical_offset = magnet_radius + tray_roundness + tray_walls
+
+magnet_vertical_placement = 'centered'
+# magnet_vertical_placement = 'fixed'
+if magnet_vertical_placement == 'centered':
+  magnet_vertical_offset = tray_depth / 2
+else:
+  magnet_vertical_offset = magnet_radius + tray_roundness + tray_walls
+
+##### End Parameters #####
 
 def tray_solid(width, height, depth, roundness):
   width = width - roundness * 2
