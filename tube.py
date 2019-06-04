@@ -52,10 +52,10 @@ tube_external_radius = tube_flat_wall_external_radius / radius_fudge_factor
 door_flat_wall_radius = tube_flat_wall_external_radius + door_lip
 
 latch_width = 0.7 * 2 * sled_external_radius * sin(pi / side_count)
-latch_angle = pi / 4 # 45 degrees seems safe for most printers
-latch_depth = 1.0 # how deep is the hole
-latch_margin = 4.0 # distance from end of sled
-latch_tolerance = base_tolerance
+latch_angle = radians(30)
+latch_depth = 0.5 # how deep is the hole
+latch_margin = 3.0 # distance from end of sled
+latch_tolerance = 0.1
 
 # ~~~~~~ main ~~~~~~
 
@@ -68,6 +68,9 @@ def door():
     cylinder(h=door_thickness - door_roundness * 2, r=mink_door_radius, segments=side_count),
     sphere(door_roundness)
   ))
+  if (side_count % 4 == 0):
+    door = rotate([0, 0, 180 / side_count])(door)
+
   door_radius = door_flat_wall_radius / radius_fudge_factor
   door_lip_from_sled = door_flat_wall_radius - sled_external_flat_wall_radius
   door_flattener = cube([door_radius*2, door_lip_from_sled, door_thickness])
@@ -76,38 +79,53 @@ def door():
   return door
 
 def sled():
+  sled = cylinder(h=sled_external_length + door_thickness, r=sled_external_radius, segments=side_count)
   sled_interior = up(sled_wall_thickness)(cylinder(h=sled_internal_length, r=sled_internal_radius, segments=side_count))
+  if (side_count % 4 == 0):
+    rotation = [0, 0, 180 / side_count]
+    sled = rotate(rotation)(sled)
+    sled_interior = rotate(rotation)(sled_interior)
+
   sled_flattener = cube([sled_external_radius * 2, sled_external_radius, sled_internal_length])
   sled_flattener = translate([-sled_external_radius, 0, sled_wall_thickness])(sled_flattener)
   # add door thickness so the tube overlaps the door to make a cleaner union for printing
-  sled = cylinder(h=sled_external_length + door_thickness, r=sled_external_radius, segments=side_count)
   sled = sled - sled_flattener - sled_interior
-  latch_hole = latch(0)
-  latch_hole = translate([0, -sled_flat_wall_external_radius, 0])(latch_hole)
-  sled -= latch_hole
   # tokens = color(Transparent)(cylinder(r=token_diameter / 2.0, h=token_thickness * token_count))
   # sled += up(sled_wall_thickness)(tokens)
   sled += up(sled_external_length)(door())
+
+  latch_hole = latch(0)
+  latch_hole = translate([0, -sled_flat_wall_external_radius, 0])(latch_hole)
+  sled -= latch_hole
+
   return sled
 
 def tube_window():
   window_radius = tube_window_width / 2.0
-  window_length = tube_external_length - tube_wall_thickness - tube_window_height_margin * 2
+  window_end_offset = (
+    tube_external_length -
+    tube_window_height_margin * 2 -
+    window_radius * 2
+  )
   # seems we need a little extra thickness for floating point errors so the window will punch all the way through
   window_end_fudge_height = 0.1
   window_end = cylinder(h=tube_wall_thickness + window_end_fudge_height, r=window_radius),
-  window = hull()(window_end, right(window_length)(window_end))
+  window = hull()(window_end, right(window_end_offset)(window_end))
   window = rotate([90, -90])(window)
   window = translate([
-    window_end_fudge_height / 2,
+    0,
     tube_flat_wall_external_radius + window_end_fudge_height / 2,
-    tube_window_height_margin + tube_wall_thickness]
+    tube_window_height_margin + window_radius]
   )(window)
   return window
 
 def tube():
   tube = cylinder(h=tube_external_length, r=tube_external_radius, segments=side_count)
   tube_hollow = up(tube_wall_thickness)(cylinder(h=tube_external_length, r=tube_internal_radius, segments=side_count))
+  if (side_count % 4 == 0):
+    rotation = [0, 0, 180 / side_count]
+    tube = rotate(rotation)(tube)
+    tube_hollow = rotate(rotation)(tube_hollow)
   tube -= tube_hollow
   catch = translate([0, -tube_flat_wall_internal_radius, tube_wall_thickness])(latch(-latch_tolerance))
   tube += catch
