@@ -1,9 +1,6 @@
 from solid import *
 from solid.utils import *
-from math import pi, cos
-
-render_tube = True
-render_sled = True
+from math import pi, sin, cos, tan
 
 side_count = 6
 
@@ -54,6 +51,12 @@ tube_external_radius = tube_flat_wall_external_radius / radius_fudge_factor
 
 door_flat_wall_radius = tube_flat_wall_external_radius + door_lip
 
+latch_width = 0.7 * 2 * sled_external_radius * sin(pi / side_count)
+latch_angle = pi / 4 # 45 degrees seems safe for most printers
+latch_depth = 1.0 # how deep is the hole
+latch_margin = 4.0 # distance from end of sled
+latch_tolerance = base_tolerance
+
 # ~~~~~~ main ~~~~~~
 
 # distance from origin to sled external flat wall
@@ -79,11 +82,12 @@ def sled():
   # add door thickness so the tube overlaps the door to make a cleaner union for printing
   sled = cylinder(h=sled_external_length + door_thickness, r=sled_external_radius, segments=side_count)
   sled = sled - sled_flattener - sled_interior
+  latch_hole = latch(0)
+  latch_hole = translate([0, -sled_flat_wall_external_radius, 0])(latch_hole)
+  sled -= latch_hole
   # tokens = color(Transparent)(cylinder(r=token_diameter / 2.0, h=token_thickness * token_count))
   # sled += up(sled_wall_thickness)(tokens)
   sled += up(sled_external_length)(door())
-  sled = rotate([90, 0, 90])(sled)
-  sled = up(sled_external_flat_wall_radius)(sled)
   return sled
 
 def tube_window():
@@ -93,19 +97,65 @@ def tube_window():
   window_end_fudge_height = 0.1
   window_end = cylinder(h=tube_wall_thickness + window_end_fudge_height, r=window_radius),
   window = hull()(window_end, right(window_length)(window_end))
-  window = rotate([0, -90])(window)
-  window = translate([window_end_fudge_height / 2, 0, tube_window_height_margin + tube_wall_thickness])(window)
+  window = rotate([90, -90])(window)
+  window = translate([
+    window_end_fudge_height / 2,
+    tube_flat_wall_external_radius + window_end_fudge_height / 2,
+    tube_window_height_margin + tube_wall_thickness]
+  )(window)
   return window
 
 def tube():
   tube = cylinder(h=tube_external_length, r=tube_external_radius, segments=side_count)
   tube_hollow = up(tube_wall_thickness)(cylinder(h=tube_external_length, r=tube_internal_radius, segments=side_count))
   tube -= tube_hollow
-  tube = rotate([0, 0, 180.0 / side_count])(tube)
-  window = right(tube_flat_wall_external_radius)(tube_window())
-  tube -= window
+  catch = translate([0, -tube_flat_wall_internal_radius, tube_wall_thickness])(latch(-latch_tolerance))
+  tube += catch
+  tube -= tube_window()
   return tube
 
+def latch(tolerance):
+  depth = latch_depth + tolerance
+  width = latch_width + tolerance
+  base_length = 2 * depth / tan(latch_angle)
+  base = polygon([
+    [0, 0],
+    [base_length / 2, depth],
+    [base_length, 0],
+  ])
+  latch = linear_extrude(width)(base)
+  latch = rotate([0, -90])(latch)
+  latch = translate([
+    width / 2,
+    0,
+    latch_margin
+  ])(latch)
+  return latch
 
-scad_render_to_file(sled(), 'sled.scad', file_header='$fn=40;')
-scad_render_to_file(tube(), 'tube.scad', file_header='$fn=40;')
+def sled_for_print():
+  printed_sled = sled()
+  printed_sled = rotate([90, 0, 0])(printed_sled)
+  printed_sled = up(sled_external_flat_wall_radius)(printed_sled)
+  return printed_sled
+
+  return sled()
+
+def sled_for_assembly():
+  return up(tube_wall_thickness)(sled())
+
+def tube_for_print():
+  return tube()
+
+def tube_for_assembly():
+  # unfortunately, transparency doesn't quite work in openscad
+  return color(Transparent)(tube())
+
+header = '$fn=40;'
+
+scad_render_to_file(sled_for_print(), 'sled.scad', file_header=header)
+scad_render_to_file(tube_for_print(), 'tube.scad', file_header=header)
+# scad_render_to_file(
+#   tube_for_assembly() + sled_for_assembly(),
+#   'tube_assembly.scad',
+#   file_header=header
+# )
