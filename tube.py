@@ -12,10 +12,10 @@ base_tolerance = 0.2
 # divide by this to go from flat wall radius to vertex radius
 radius_fudge_factor = cos(pi / side_count)
 
-token_diameter = 22.0
+token_diameter = 32.0
 token_radius = token_diameter / 2.0
-token_thickness = 3.0
-token_count = 10
+token_thickness = 2.0
+token_count = 60
 token_diameter_tolerance = base_tolerance # additional distance between tokens and sled
 token_length_tolerance = base_tolerance # additional distance around tokens front to back
 
@@ -32,7 +32,7 @@ tube_window_width = 5.0
 tube_window_height_margin = 5.0
 tube_tolerance = base_tolerance # extra distance between tube and sled
 
-door_lip = 3.0
+door_lip = 2.0
 door_thickness = 2.0
 door_roundness = 0.5
 
@@ -53,8 +53,8 @@ door_flat_wall_radius = tube_flat_wall_external_radius + door_lip
 
 latch_width = 0.7 * 2 * sled_external_radius * sin(pi / side_count)
 latch_angle = radians(30)
-latch_depth = 0.5 # how deep is the hole
-latch_margin = 3.0 # distance from end of sled
+latch_depth = 0.2 # how deep is the hole
+latch_margin = 2.0 # distance from end of sled
 latch_tolerance = 0.1
 
 # ~~~~~~ main ~~~~~~
